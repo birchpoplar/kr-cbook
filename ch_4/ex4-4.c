@@ -2,10 +2,9 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <math.h>
 
 #define MAXOP 100
-#define NUMBER '0'
-#define COMMAND '1'
 #define MAXVAL 100
 #define BUFSIZE 100
 #define TRUE 1
@@ -23,16 +22,20 @@ int bufp = 0;
 int sp = 0;
 double val[MAXVAL];
 int cmd;
-enum commands {NON, PRT, DUP, SWP, CLR};
+enum subcommands {NON, PRT, DUP, SWP, CLR, SIN, COS, TAN, EXP, POW};
+enum commands {NUMBER, COMMAND, VARPUT, VARGET};
 
 /* Reverse Polish Notation Calculator */
 int main()
 {
   int type;
-  double op2;
-  double op3;
+  double op2, op3, op4;
   char s[MAXOP];
+  double var[26];
 
+  for (int i=0; i<=26; ++i)
+    var[i] = 0;
+  
   while ((type = getop(s)) != EOF) {
     switch (type) {
     case NUMBER:
@@ -100,11 +103,70 @@ int main()
 	val[sp] = 0;
 	printf("\tstack cleared\n");
 	break;
+      case SIN:
+	if (sp > 0) {
+	  op2 = pop();
+	  op3 = sin(op2);
+	  push(op3);
+	  printf("\t%.8g\n", op3);
+	  
+	} else
+	  printf("error: stack empty\n");
+	break; /* break from command switch */
+      case COS:
+	if (sp > 0) {
+	  op2 = pop();
+	  op3 = cos(op2);
+	  push(op3);
+	  printf("\t%.8g\n", op3);
+	  
+	} else
+	  printf("error: stack empty\n");
+	break; /* break from command switch */
+      case TAN:
+	if (sp > 0) {
+	  op2 = pop();
+	  op3 = tan(op2);
+	  push(op3);
+	  printf("\t%.8g\n", op3);
+	  
+	} else
+	  printf("error: stack empty\n");
+	break; /* break from command switch */
+      case EXP:
+	if (sp > 0) {
+	  op2 = pop();
+	  op3 = exp(op2);
+	  push(op3);
+	  printf("\t%.8g\n", op3);
+	  
+	} else
+	  printf("error: stack empty\n");
+	break; /* break from command switch */
+      case POW:
+	if (sp > 1) {
+	  op2 = pop();
+	  op3 = pop();
+	  op4 = pow(op2, op3);
+	  push(op4);
+	  printf("\t%.8g\n", op4);
+	  
+	} else
+	  printf("error: stack empty\n");
+	break; /* break from command switch */
       default:
 	printf("error: unknown command %s\n", s);
 	break;
       }
       break; /* break from op code switch */
+    case VARPUT:
+      var[s[0]-'a'+1] = pop();
+      printf("\tvariable updated\n");
+      break;
+    case VARGET:
+      push(var[s[0]-'a'+1]);
+      printf("\tvariable retrieved\n");
+      break;
     default:
       printf("error: unknown command %s\n", s);
       break;
@@ -138,7 +200,7 @@ int getop(char s[])
   while ((s[0] = c = getch()) == ' ' || c == '\t')
     ;
   s[1] = '\0';
-  if (!isdigit(c) && !isalpha(c) && c != '.' && c != '-') /* operator */
+  if (!isdigit(c) && !isalpha(c) && c != '.' && c != '-' && c != '>' && c != '<') /* operator */
     return c;
   i = 0;
   if (isalpha(c)) {
@@ -152,7 +214,29 @@ int getop(char s[])
       cmd = SWP;
     else if (strcmp(s, "clr\n") == 0)
       cmd = CLR;
+    else if (strcmp(s, "sin\n") == 0)
+      cmd = SIN;
+    else if (strcmp(s, "cos\n") == 0)
+      cmd = COS;
+    else if (strcmp(s, "tan\n") == 0)
+      cmd = TAN;
+    else if (strcmp(s, "exp\n") == 0)
+      cmd = EXP;
+    else if (strcmp(s, "pow\n") == 0)
+      cmd = POW;
     return COMMAND;
+  }
+  if (c == '>') {
+    while (i < 2) {
+      s[i++] = getch();
+    }
+    return VARPUT;
+  }
+  if (c == '<') {
+    while (i < 2) {
+      s[i++] = getch();
+    }
+    return VARGET;
   }
   if (c == '-')
     s[++i] = c = getch();
